@@ -108,4 +108,9 @@ public struct QueryMethod
     /// <remarks>[Exclusive(typeof(Position), typeof(Velocity)] or its generic variant</remarks>
     /// </summary>
     public IList<ITypeSymbol> ExclusiveFilteredTypes { get; set; }
+
+    /// <summary>
+    /// Use to pass non-static class instances to parallel query methods
+    /// </summary>
+    public ITypeSymbol? ContainingSystemType { get; set; }
 }

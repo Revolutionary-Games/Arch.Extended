@@ -108,9 +108,16 @@ public static class QueryUtils
     /// </summary>
     /// <param name="sb">The <see cref="StringBuilder"/> instance.</param>
     /// <param name="parameterSymbols">The <see cref="IEnumerable{T}"/> of <see cref="IParameterSymbol"/>s which will be appended if they are marked with data.</param>
+    /// <param name="systemType">When non-null a system is copied as a parameter</param>
     /// <returns></returns>
-    public static StringBuilder JobParameters(this StringBuilder sb, IEnumerable<IParameterSymbol> parameterSymbols)
+    public static StringBuilder JobParameters(this StringBuilder sb, IEnumerable<IParameterSymbol> parameterSymbols, ITypeSymbol? systemType = null)
     {
+        // Add system field if provided
+        if (systemType != null)
+        {
+            sb.AppendLine($"public {systemType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)} @system;");
+        }
+
         foreach (var parameter in parameterSymbols)
         {
             if (parameter.GetAttributes().Any(attributeData => attributeData.AttributeClass!.Name.Contains("Data")))
@@ -125,10 +132,18 @@ public static class QueryUtils
     /// </summary>
     /// <param name="sb">The <see cref="StringBuilder"/> instance.</param>
     /// <param name="parameterSymbols">The <see cref="IEnumerable{T}"/> of <see cref="IParameterSymbol"/>s which will be appended if they are marked with data.</param>
+    /// <param name="systemType">When non-null a system is copied as a parameter</param>
     /// <returns></returns>
-    public static StringBuilder JobParametersAssigment(this StringBuilder sb, IEnumerable<IParameterSymbol> parameterSymbols)
+    public static StringBuilder JobParametersAssigment(this StringBuilder sb, IEnumerable<IParameterSymbol> parameterSymbols, ITypeSymbol? systemType = null)
     {
         bool found = false;
+
+        if (systemType != null)
+        {
+            found = true;
+            sb.AppendLine($"@system = this,");
+        }
+
         foreach (var parameter in parameterSymbols)
         {
             if (parameter.GetAttributes().Any(attributeData => attributeData.AttributeClass!.Name.Contains("Data")))
@@ -257,6 +272,12 @@ public static class QueryUtils
             NoneFilteredTypes = noneArray,
             ExclusiveFilteredTypes = exclusiveArray
         };
+
+        if (isParallel && !queryMethod.IsStatic && methodSymbol.ContainingType.TypeKind == TypeKind.Class)
+        {
+            // Need to pass system reference as data (copying structs wouldn't work so this is only for classes)
+            queryMethod.ContainingSystemType = methodSymbol.ContainingType;
+        }
         
         return isParallel ? sb.AppendParallelQueryMethod(ref queryMethod) : sb.AppendQueryMethod(ref queryMethod);
     }
@@ -346,8 +367,8 @@ public static class QueryUtils
         var staticModifier = queryMethod.IsStatic ? "static" : "";
         
         // Generate code 
-        var jobParameters = new StringBuilder().JobParameters(queryMethod.Parameters);
-        var jobParametersAssigment = new StringBuilder().JobParametersAssigment(queryMethod.Parameters);
+        var jobParameters = new StringBuilder().JobParameters(queryMethod.Parameters, queryMethod.ContainingSystemType);
+        var jobParametersAssigment = new StringBuilder().JobParametersAssigment(queryMethod.Parameters, queryMethod.ContainingSystemType);
         var data = new StringBuilder().DataParameters(queryMethod.Parameters);
         var getFirstElements = new StringBuilder().GetFirstElements(queryMethod.Components);
         var getComponents = new StringBuilder().GetComponents(queryMethod.Components);
@@ -357,6 +378,8 @@ public static class QueryUtils
         var anyTypeArray = new StringBuilder().GetTypeArray(queryMethod.AnyFilteredTypes);
         var noneTypeArray = new StringBuilder().GetTypeArray(queryMethod.NoneFilteredTypes);
         var exclusiveTypeArray = new StringBuilder().GetTypeArray(queryMethod.ExclusiveFilteredTypes);
+
+        var callPrefix = queryMethod.ContainingSystemType != null ? "@system." : "";
 
         var template = 
             $$"""
@@ -395,7 +418,7 @@ public static class QueryUtils
                             {
                                 {{(queryMethod.IsEntityQuery ? $"ref readonly var {queryMethod.EntityParameter.Name.ToLower()} = ref Unsafe.Add(ref entityFirstElement, entityIndex);" : "")}}
                                 {{getComponents}}
-                                {{queryMethod.MethodName}}({{insertParams}});
+                                {{callPrefix}}{{queryMethod.MethodName}}({{insertParams}});
                             }
                         }
                     }
