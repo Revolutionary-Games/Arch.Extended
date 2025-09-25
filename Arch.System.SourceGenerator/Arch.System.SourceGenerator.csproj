@@ -29,6 +29,7 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Copyright>Apache2.0</Copyright>
         <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     </PropertyGroup>
 
     <ItemGroup>
