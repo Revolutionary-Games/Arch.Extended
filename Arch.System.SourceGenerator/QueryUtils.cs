@@ -256,8 +256,8 @@ public static class QueryUtils
         var queryMethod = new QueryMethod
         {
             IsGlobalNamespace = methodSymbol.ContainingNamespace.IsGlobalNamespace,
-            Namespace = methodSymbol.ContainingNamespace.ToString(),
-            ClassName = className.Substring(className.LastIndexOf('.')+1),
+            Namespace = methodSymbol.ContainingNamespace!.ToString()!,
+            ClassName = className!.Substring(className.LastIndexOf('.')+1),
             
             IsStatic = methodSymbol.IsStatic,
             IsEntityQuery = entity,
@@ -485,10 +485,10 @@ public static class QueryUtils
         // Generate basesystem.
         var baseSystem = new BaseSystem
         {
-            Namespace = classSymbol.ContainingNamespace != null && !classSymbol.ContainingNamespace.IsGlobalNamespace ? classSymbol.ContainingNamespace.ToString() : string.Empty,
+            Namespace = classSymbol.ContainingNamespace != null && !classSymbol.ContainingNamespace.IsGlobalNamespace ? classSymbol.ContainingNamespace.ToString()! : string.Empty,
             GenericType = typeSymbol,
-            GenericTypeNamespace = typeSymbol.ContainingNamespace.ToString(),
-            Name = className.Substring(className.LastIndexOf('.') + 1),
+            GenericTypeNamespace = typeSymbol.ContainingNamespace.ToString()!,
+            Name = className!.Substring(className.LastIndexOf('.') + 1),
             QueryMethods = classToMethod.Value,
         };
         return sb.AppendBaseSystem(ref baseSystem);

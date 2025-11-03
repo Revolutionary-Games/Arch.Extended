@@ -131,8 +131,10 @@ public class QueryGenerator : IIncrementalGenerator
     {
         public static readonly Comparer Instance = new();
 
-        public bool Equals(MethodDeclarationSyntax x, MethodDeclarationSyntax y)
+        public bool Equals(MethodDeclarationSyntax? x, MethodDeclarationSyntax? y)
         {
+            if (x is null || y is null)
+                return false;
             return x.Equals(y);
         }
 
